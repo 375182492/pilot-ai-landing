@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pilot AI · 智能体开发与运营平台</title>
+<meta name="description" content="基于 AgentScope 2.0 Java 框架的企业级智能体开发平台，AGUI/A2UI 协议驱动，SSE 流式对话，全链路可观测。" />
+<style>
+  :root {
+    --bg: #07070f;
+    --bg-2: #0d0d1a;
+    --panel: rgba(20, 20, 36, 0.6);
+    --panel-solid: #12121f;
+    --border: rgba(140, 130, 255, 0.18);
+    --border-strong: rgba(170, 59, 255, 0.5);
+    --text: #b9b6cc;
+    --text-h: #f4f3fb;
+    --muted: #7a7790;
+    --accent: #aa3bff;
+    --accent-2: #4d8bff;
+    --accent-3: #22d3ee;
+    --grad: linear-gradient(120deg, #aa3bff 0%, #4d8bff 50%, #22d3ee 100%);
+    --grad-soft: linear-gradient(120deg, rgba(170,59,255,.18), rgba(34,211,238,.12));
+    --shadow: 0 24px 60px -20px rgba(120, 60, 255, 0.35);
+    --mono: ui-monospace, "JetBrains Mono", Consolas, monospace;
+    --sans: system-ui, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ---------- ambient background ---------- */
+  .bg-fx {
+    position: fixed; inset: 0; z-index: -2; pointer-events: none;
+    background:
+      radial-gradient(700px 500px at 12% -5%, rgba(170,59,255,.22), transparent 60%),
+      radial-gradient(800px 600px at 95% 0%, rgba(34,211,238,.14), transparent 55%),
+      radial-gradient(900px 700px at 50% 120%, rgba(77,139,255,.16), transparent 60%),
+      var(--bg);
+  }
+  .grid-fx {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .35;
+    background-image:
+      linear-gradient(rgba(140,130,255,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(140,130,255,.06) 1px, transparent 1px);
+    background-size: 46px 46px;
+    mask-image: radial-gradient(circle at 50% 30%, #000 0%, transparent 75%);
+  }
+
+  /* ---------- layout ---------- */
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 96px 0; position: relative; }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(18px);
+    background: rgba(7,7,15,.62);
+    border-bottom: 1px solid var(--border);
+  }
+  nav .wrap { display: flex; align-items: center; height: 64px; gap: 32px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text-h); text-decoration: none; font-size: 18px; letter-spacing: .3px; }
+  .brand .logo {
+    width: 30px; height: 30px; border-radius: 8px; background: var(--grad);
+    display: grid; place-items: center; box-shadow: 0 0 22px rgba(170,59,255,.6);
+    font-size: 16px; color: #fff;
+  }
+  nav ul { display: flex; gap: 26px; list-style: none; margin: 0; padding: 0; }
+  nav ul a { color: var(--text); text-decoration: none; font-size: 14.5px; transition: color .2s; }
+  nav ul a:hover { color: var(--text-h); }
+  .nav-cta { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+    border: none; font: inherit; font-weight: 600; font-size: 14.5px;
+    padding: 10px 18px; border-radius: 10px; text-decoration: none;
+    transition: transform .15s, box-shadow .2s, background .2s;
+  }
+  .btn-primary { background: var(--grad); color: #fff; box-shadow: 0 8px 26px -8px rgba(170,59,255,.7); }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 34px -8px rgba(170,59,255,.9); }
+  .btn-ghost { background: transparent; color: var(--text-h); border: 1px solid var(--border-strong); }
+  .btn-ghost:hover { background: rgba(170,59,255,.1); }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 120px 0 80px; text-align: center; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 999px;
+    background: var(--grad-soft); border: 1px solid var(--border-strong);
+    color: var(--text-h); font-size: 13px; margin-bottom: 26px;
+  }
+  .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-3); box-shadow: 0 0 10px var(--accent-3); animation: blink 1.6s infinite; }
+  @keyframes blink { 50% { opacity: .35; } }
+  h1 {
+    font-size: clamp(38px, 6vw, 72px); line-height: 1.05; margin: 0 0 24px;
+    font-weight: 800; letter-spacing: -1.5px; color: var(--text-h);
+  }
+  h1 .g { background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .lead { font-size: clamp(16px, 2vw, 20px); max-width: 720px; margin: 0 auto 38px; color: var(--text); }
+  .hero-cta { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .hero-stats { display: flex; gap: 48px; justify-content: center; flex-wrap: wrap; margin-top: 64px; }
+  .stat .n { font-size: 34px; font-weight: 800; color: var(--text-h); }
+  .stat .n .g { background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat .l { font-size: 13px; color: var(--muted); }
+
+  /* ---------- section heading ---------- */
+  .shead { text-align: center; max-width: 760px; margin: 0 auto 56px; }
+  .stag { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; font-weight: 700; }
+  h2 { font-size: clamp(28px, 4vw, 40px); color: var(--text-h); margin: 0 0 16px; font-weight: 700; letter-spacing: -.5px; }
+  .shead p { color: var(--text); font-size: 16.5px; }
+
+  /* ---------- cards ---------- */
+  .grid { display: grid; gap: 20px; }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 900px) { .g3, .g2 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; position: relative; overflow: hidden;
+    transition: transform .25s, border-color .25s, background .25s;
+    backdrop-filter: blur(10px);
+  }
+  .card:hover { transform: translateY(-6px); border-color: var(--border-strong); background: rgba(28,28,48,.7); }
+  .card::before { content: ""; position: absolute; inset: 0; background: var(--grad-soft); opacity: 0; transition: opacity .3s; }
+  .card:hover::before { opacity: 1; }
+  .card > * { position: relative; }
+  .ico {
+    width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center;
+    background: var(--grad-soft); border: 1px solid var(--border-strong); margin-bottom: 18px;
+    font-size: 24px;
+  }
+  .card h3 { color: var(--text-h); margin: 0 0 8px; font-size: 19px; font-weight: 650; }
+  .card p { margin: 0; font-size: 14.5px; color: var(--text); }
+  .card .tag { display: inline-block; margin-top: 14px; font-family: var(--mono); font-size: 11.5px; color: var(--accent-3); border: 1px solid var(--border); padding: 3px 8px; border-radius: 6px; }
+
+  /* ---------- feature icon list ---------- */
+  .module-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .module-list { grid-template-columns: repeat(2, 1fr); } }
+  .mod {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px;
+    transition: transform .2s, border-color .2s;
+  }
+  .mod:hover { transform: translateY(-4px); border-color: var(--border-strong); }
+  .mod .port { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .mod h4 { margin: 8px 0 6px; color: var(--text-h); font-size: 15.5px; font-weight: 600; }
+  .mod p { margin: 0; font-size: 13px; color: var(--text); }
+
+  /* ---------- conversation demo ---------- */
+  .chat-card {
+    background: var(--panel-solid); border: 1px solid var(--border);
+    border-radius: 18px; overflow: hidden; box-shadow: var(--shadow);
+  }
+  .chat-head { display: flex; align-items: center; gap: 12px; padding: 16px 22px; border-bottom: 1px solid var(--border); background: rgba(170,59,255,.06); }
+  .chat-head .avatar { width: 34px; height: 34px; border-radius: 9px; background: var(--grad); display: grid; place-items: center; font-size: 16px; }
+  .chat-head .name { color: var(--text-h); font-weight: 600; font-size: 15px; }
+  .chat-head .sub { font-size: 12px; color: var(--muted); }
+  .chat-body { padding: 24px; display: flex; flex-direction: column; gap: 18px; max-height: 560px; }
+  .msg { display: flex; gap: 12px; max-width: 88%; }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg .av { width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0; display: grid; place-items: center; font-size: 14px; }
+  .msg.assistant .av { background: var(--grad); color: #fff; }
+  .msg.user .av { background: #2a2a3d; color: var(--text-h); border: 1px solid var(--border); }
+  .msg .bubble {
+    background: rgba(40,40,60,.55); border: 1px solid var(--border);
+    padding: 12px 16px; border-radius: 14px; font-size: 14.5px; color: var(--text-h);
+  }
+  .msg.user .bubble { background: var(--grad-soft); border-color: var(--border-strong); }
+
+  .thinking {
+    font-size: 13px; color: var(--muted); font-style: italic;
+    border-left: 2px solid var(--accent); padding: 4px 0 4px 12px; margin: 4px 0;
+  }
+  .tool-step {
+    display: flex; align-items: center; gap: 10px; font-size: 13px;
+    background: rgba(34,211,238,.07); border: 1px solid rgba(34,211,238,.25);
+    padding: 8px 14px; border-radius: 10px; color: #cdeefb; width: fit-content;
+    font-family: var(--mono);
+  }
+  .tool-step .ok { color: #4ade80; }
+  .chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { font-family: var(--mono); font-size: 12px; padding: 4px 10px; border-radius: 7px; background: rgba(170,59,255,.12); border: 1px solid var(--border); color: #d9c9ff; }
+
+  .compare-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13px; }
+  .compare-table th, .compare-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .compare-table th { color: var(--accent-3); font-weight: 600; font-size: 12px; }
+  .compare-table td { color: var(--text-h); }
+  .compare-table tr.hl td { background: rgba(170,59,255,.12); }
+
+  .hint-input {
+    margin-top: 18px; display: flex; gap: 10px; padding: 12px;
+    border: 1px solid var(--border); border-radius: 12px; background: rgba(20,20,36,.5);
+  }
+  .hint-input span { color: var(--muted); font-size: 14px; flex: 1; align-self: center; }
+  .hint-input .send { background: var(--grad); border: none; color: #fff; width: 36px; height: 36px; border-radius: 9px; cursor: pointer; font-size: 16px; }
+
+  /* tabs for scenarios */
+  .tabs { display: flex; gap: 10px; justify-content: center; margin-bottom: 28px; flex-wrap: wrap; }
+  .tab { padding: 8px 18px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; font-size: 14px; transition: all .2s; }
+  .tab.active { background: var(--grad-soft); border-color: var(--border-strong); color: var(--text-h); }
+
+  /* ---------- protocol strip ---------- */
+  .proto {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 30px; display: flex; gap: 30px; align-items: center; flex-wrap: wrap;
+  }
+  .proto .flow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1; min-width: 280px; }
+  .node { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: rgba(20,20,36,.6); font-family: var(--mono); font-size: 12.5px; color: var(--text-h); }
+  .node.hot { border-color: var(--border-strong); background: var(--grad-soft); }
+  .arrow { color: var(--accent); font-weight: 700; }
+
+  /* ---------- code block ---------- */
+  .code {
+    background: #0a0a14; border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden; font-family: var(--mono);
+  }
+  .code .bar { display: flex; gap: 7px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .code .bar i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  .code .bar .r { background: #ff5f57; } .code .bar .y { background: #febc2e; } .code .bar .g { background: #28c840; }
+  .code .bar .file { margin-left: 12px; color: var(--muted); font-size: 12px; }
+  .code pre { margin: 0; padding: 20px; font-size: 13px; line-height: 1.7; overflow-x: auto; color: #cdd0e0; }
+  .code .k { color: #c792ea; }   /* keyword */
+  .code .s { color: #c3e88d; }   /* string */
+  .code .c { color: #6b6f85; font-style: italic; } /* comment */
+  .code .t { color: #82aaff; }   /* type */
+  .code .f { color: #ffcb6b; }   /* func */
+
+  /* ---------- timeline ---------- */
+  .tl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 900px) { .tl { grid-template-columns: 1fr; } }
+  .phase { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 26px; position: relative; }
+  .phase .ph-num { font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 10px; }
+  .phase h3 { color: var(--text-h); margin: 0 0 14px; font-size: 18px; }
+  .phase ul { margin: 0; padding-left: 18px; }
+  .phase li { font-size: 13.5px; margin-bottom: 8px; }
+  .phase li b { color: var(--accent-3); font-weight: 600; font-family: var(--mono); font-size: 12px; }
+
+  /* footer */
+  footer { border-top: 1px solid var(--border); padding: 50px 0 40px; }
+  footer .wrap { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
+  footer .copy { color: var(--muted); font-size: 13.5px; }
+  footer .links { display: flex; gap: 22px; }
+  footer .links a { color: var(--text); text-decoration: none; font-size: 13.5px; }
+  footer .links a:hover { color: var(--text-h); }
+
+  /* reveal on scroll */
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  .divider { height: 1px; background: var(--border); max-width: 1180px; margin: 0 auto; }
+  .center { text-align: center; }
+  .big-cta { padding: 80px 0 96px; text-align: center; }
+  .glow-orb {
+    position: absolute; border-radius: 50%; filter: blur(60px); opacity: .5; z-index: -1;
+  }
+
+  /* ---------- hamburger toggle ---------- */
+  .nav-toggle {
+    display: none; margin-left: auto; background: transparent; border: 1px solid var(--border);
+    color: var(--text-h); width: 40px; height: 40px; border-radius: 10px; font-size: 18px;
+    cursor: pointer; align-items: center; justify-content: center;
+  }
+
+  /* ============== TABLET & MOBILE ============== */
+  @media (max-width: 768px) {
+    .wrap { padding: 0 18px; }
+    section { padding: 64px 0; }
+
+    /* nav: collapse links into drawer */
+    nav .wrap { height: 58px; gap: 0; }
+    .brand { font-size: 16px; }
+    .nav-cta .btn-ghost { display: none; }            /* 桌面文档按钮隐藏，留主 CTA */
+    .nav-cta .btn-primary { padding: 8px 14px; font-size: 13.5px; }
+    nav ul {
+      position: fixed; top: 58px; left: 0; right: 0;
+      flex-direction: column; gap: 0; padding: 8px 18px 16px;
+      background: rgba(7,7,15,.96); backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+      transform: translateY(-130%); transition: transform .3s ease; z-index: 40;
+    }
+    nav ul.open { transform: translateY(0); }
+    nav ul li { padding: 12px 0; border-bottom: 1px solid var(--border); }
+    nav ul li:last-child { border-bottom: none; }
+    .nav-toggle { display: inline-flex; }
+
+    /* hero */
+    .hero { padding: 72px 0 56px; }
+    h1 { font-size: clamp(30px, 9vw, 44px); line-height: 1.12; }
+    .lead { font-size: 15.5px; margin-bottom: 30px; }
+    .hero-cta { gap: 12px; }
+    .hero-cta .btn { flex: 1; justify-content: center; }
+    .hero-stats { gap: 28px 40px; margin-top: 48px; }
+    .stat .n { font-size: 26px; }
+    .stat .l { font-size: 12px; }
+
+    /* section heads */
+    h2 { font-size: clamp(24px, 6.5vw, 30px); }
+    .shead { margin-bottom: 36px; }
+    .shead p { font-size: 15px; }
+
+    /* grids already collapse via .g3/.g2 (max-width:900px) */
+    .card { padding: 22px; }
+    .card h3 { font-size: 17px; }
+    .card p { font-size: 14px; }
+    .module-list { grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* proto flow wrap: smaller nodes, scroll-friendly */
+    .proto { padding: 22px; gap: 18px; }
+    .proto .flow { gap: 6px; }
+    .node { font-size: 11.5px; padding: 6px 10px; }
+    .arrow { font-size: 13px; }
+
+    /* chat demo */
+    .chat-head { padding: 13px 16px; }
+    .chat-head .name { font-size: 14px; }
+    .chat-head .sub { font-size: 11px; }
+    .chat-body { padding: 18px 14px; gap: 14px; }
+    .msg { max-width: 100%; gap: 9px; }
+    .msg .av { width: 28px; height: 28px; font-size: 13px; }
+    .msg .bubble { font-size: 13.5px; padding: 11px 13px; border-radius: 13px; }
+    .thinking { font-size: 12px; }
+    .tool-step { font-size: 11.5px; padding: 7px 11px; }
+    .chip { font-size: 11px; }
+    .tabs { gap: 8px; margin-bottom: 20px; }
+    .tab { padding: 7px 12px; font-size: 12.5px; }
+    .hint-input { margin-top: 14px; }
+    .hint-input span { font-size: 13px; }
+    /* compare table horizontal scroll */
+    .compare-table { font-size: 12px; }
+    .compare-table th, .compare-table td { padding: 7px 9px; }
+
+    /* code blocks: allow horizontal scroll, smaller */
+    .code pre { font-size: 12px; padding: 16px; }
+    .code .bar .file { font-size: 11px; }
+
+    /* dev component grid: 5 col -> 2 col */
+    .mod-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+    .mod-grid .mod { padding: 14px; }
+    .mod-grid .mod h4 { font-size: 14px; }
+    .mod-grid .mod p { font-size: 12px; }
+
+    /* timeline already single column under 900 */
+    .phase { padding: 22px; }
+
+    /* big CTA */
+    .big-cta { padding: 56px 0 64px; }
+
+    /* footer stack */
+    footer .wrap { flex-direction: column; align-items: flex-start; gap: 16px; }
+    footer .links { gap: 16px; flex-wrap: wrap; }
+    footer .copy { font-size: 12.5px; }
+  }
+
+  /* ============== SMALL PHONES ============== */
+  @media (max-width: 380px) {
+    .hero-stats { gap: 22px 30px; }
+    .module-list { grid-template-columns: 1fr; }
+    .nav-cta .btn-primary { padding: 7px 11px; font-size: 12.5px; }
+    .hero-cta { flex-direction: column; }
+    .hero-cta .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-fx"></div>
+<div class="grid-fx"></div>
+
+<!-- ===================== NAV ===================== -->
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#"><span class="logo">◈</span> Pilot AI</a>
+    <ul>
+      <li><a href="#features">功能</a></li>
+      <li><a href="#highlights">特色</a></li>
+      <li><a href="#demo">对话示例</a></li>
+      <li><a href="#agent">Agent 能力</a></li>
+      <li><a href="#extend">扩展能力</a></li>
+      <li><a href="#dev">开发能力</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="#dev">查看文档</a>
+      <a class="btn btn-primary" href="#demo">立即体验</a>
+    </div>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单">☰</button>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<header class="hero wrap">
+  <div class="pill"><span class="dot"></span> 基于 AgentScope 2.0 Java · AGUI/A2UI 协议 · v1.2.0</div>
+  <h1>构建你的<span class="g">企业级智能体</span><br/>从注册到运营，一站直达</h1>
+  <p class="lead">面向内部开发者与业务人员的智能体开发与运营平台。以 AgentScope 2.0 为运行引擎，SSE 流式对话 + 全链路可观测，让每一个 Agent 都可被创建、监控、扩展与复用。</p>
+  <div class="hero-cta">
+    <a class="btn btn-primary" href="#demo">开始创建智能体 →</a>
+    <a class="btn btn-ghost" href="#features">了解平台能力</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="n"><span class="g">9</span></div><div class="l">微服务模块</div></div>
+    <div class="stat"><div class="n"><span class="g">35+</span></div><div class="l">可视化组件</div></div>
+    <div class="stat"><div class="n"><span class="g">12</span></div><div class="l">AGUI 标准事件</div></div>
+    <div class="stat"><div class="n"><span class="g">4</span></div><div class="l">大模型供应商</div></div>
+  </div>
+</header>
+
+<!-- ===================== FEATURES ===================== -->
+<section id="features" class="wrap">
+  <div class="shead reveal">
+    <div class="stag">CORE FEATURES</div>
+    <h2>八大引擎，覆盖智能体全生命周期</h2>
+    <p>从用户权限、智能体注册、对话运行时，到记忆、知识库、工具、监控与售前场景，平台以微服务形态提供端到端能力。</p>
+  </div>
+  <div class="grid g3 reveal">
+    <div class="card"><div class="ico">🧩</div><h3>智能体管理</h3><p>图标/名称/描述/系统提示词注册，模型选择与高级参数（temperature、top_p），知识库绑定，流式输出与思考模式开关，发布/下架全生命周期。</p><span class="tag">P2 · :8082</span></div>
+    <div class="card"><div class="ico">💬</div><h3>对话运行时</h3><p>平台核心引擎。基于 AgentScope Pipeline 执行，SSE 流式输出，文件附件上传下载，会话管理与历史记录，异步非阻塞。</p><span class="tag">P3 · :8083 核心</span></div>
+    <div class="card"><div class="ico">🧠</div><h3>记忆管理</h3><p>短期记忆（本地/Redis/MySQL），长期记忆三模式（AGENT_CONTROL / STATIC_CONTROL / BOTH），深度集成 Mem0。</p><span class="tag">P4 · :8084</span></div>
+    <div class="card"><div class="ico">📚</div><h3>知识库 & 模型</h3><p>多 LLM 供应商（OpenAI/通义/智谱/Ollama），API Key 加密存储；内置知识库文档向量化召回，无缝对接 Dify 外部知识库。</p><span class="tag">P5 · :8085</span></div>
+    <div class="card"><div class="ico">🛠️</div><h3>Skills 工具</h3><p>内置工具、MCP 工具、HTTP API 工具注册与调用；模型/工具超时配置，最大迭代次数控制，监控地址接入。</p><span class="tag">P6 · :8086</span></div>
+    <div class="card"><div class="ico">📡</div><h3>监控观测</h3><p>运行情况统计（成功率/延迟/Token），Trace 全链路甘特图，消息详情查看，对接 Prometheus + Grafana。</p><span class="tag">P7 · :8087</span></div>
+    <div class="card"><div class="ico">🔐</div><h3>用户与权限</h3><p>JWT 认证与刷新令牌轮转，RBAC 角色权限体系，敏感操作审计，Gateway 层 Redis+Lua 限流。</p><span class="tag">P1 · :8081</span></div>
+    <div class="card"><div class="ico">⚡</div><h3>售前智能体</h3><p>能源行业售前专项：资料收集、售前模板库、硬件产品参数库、选型推荐、工具集合配置。</p><span class="tag">P8 · :8088</span></div>
+  </div>
+
+  <div style="height:32px"></div>
+  <div class="module-list reveal">
+    <div class="mod"><div class="port">:8080</div><h4>Gateway 网关</h4><p>统一入口 · 认证/限流/路由</p></div>
+    <div class="mod"><div class="port">common</div><h4>Common 公共</h4><p>实体/DTO/AGUI/异常</p></div>
+    <div class="mod"><div class="port">:8083</div><h4>Conversation</h4><p>对话引擎 · SSE 核心</p></div>
+    <div class="mod"><div class="port">:8088</div><h4>Presales</h4><p>售前智能体专项</p></div>
+  </div>
+</section>
+
+<!-- ===================== HIGHLIGHTS ===================== -->
+<section id="highlights" class="wrap">
+  <div class="shead reveal">
+    <div class="stag">WHY PILOT AI</div>
+    <h2>不只是一个聊天框，而是可编排的智能体运行平台</h2>
+    <p>AGUI 开放协议、A2UI 自定义渲染、多层次记忆与全链路可观测，让 Agent 的"思考过程"与"运行状态"同样可被看见。</p>
+  </div>
+
+  <div class="grid g2 reveal" style="margin-bottom:24px">
+    <div class="card"><div class="ico">🌐</div><h3>AGUI / A2UI 开放协议</h3><p>遵循 AG-UI 协议规范，后端通过 SSE 推送 12 类标准事件（RUN_STARTED → STEP → TEXT_DELTA / TOOL_CALL → RUN_FINISHED），前端按事件动态驱动可视化组件渲染。A2UI 扩展通过 CUSTOM_UI_EVENT 携带图表、表格、表单、对比矩阵等业务数据。</p></div>
+    <div class="card"><div class="ico">🌊</div><h3>SSE 流式 + 思考可见</h3><p>TEXT_DELTA 逐 token 打字机渲染，THINKING_DELTA 实时展示推理链路（Chain-of-Thought）。Nginx 关闭 proxy_buffering，断线指数退避自动重连，后端保留 run 状态 30 秒。</p></div>
+    <div class="card"><div class="ico">🤖</div><h3>AgentScope 2.0 引擎</h3><p>以 AgentScope 2.0 Java SDK 为核心运行框架，Pipeline 编排 LLM 调用与工具调用，监听各步骤回调发射事件，支持多轮迭代与人工介入（Human-in-the-Loop）。</p></div>
+    <div class="card"><div class="ico">📊</div><h3>全链路可观测</h3><p>每次对话独立 run 记录，Trace Span 精确到 LLM_CALL / TOOL_CALL / PIPELINE_STEP，记录输入输出、Token 消耗、耗时与状态，前端 TraceViewer 甘特图可视化复盘。</p></div>
+  </div>
+
+  <div class="proto reveal">
+    <div style="min-width:160px"><div class="stag" style="margin:0">EVENT FLOW</div><div style="color:var(--text-h);font-weight:600;font-size:18px">AGUI 事件协议流</div></div>
+    <div class="flow">
+      <span class="node hot">RUN_STARTED</span><span class="arrow">→</span>
+      <span class="node">STEP_STARTED</span><span class="arrow">→</span>
+      <span class="node">THINKING_DELTA</span><span class="arrow">→</span>
+      <span class="node">TEXT_DELTA</span><span class="arrow">→</span>
+      <span class="node">TOOL_CALL_START</span><span class="arrow">→</span>
+      <span class="node">TOOL_RESULT</span><span class="arrow">→</span>
+      <span class="node hot">RUN_FINISHED</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== DEMO / CONVERSATION ===================== -->
+<section id="demo" class="wrap">
+  <div class="shead reveal">
+    <div class="stag">LIVE DEMO</div>
+    <h2>一次真实的智能体对话</h2>
+    <p>以下是售前智能体在能源场景中的对话还原 —— 你能看到思考过程、工具调用与结构化输出如何在一个流式会话中协同呈现。</p>
+  </div>
+
+  <div class="tabs reveal" id="demoTabs">
+    <div class="tab active" data-s="0">🏭 售前选型</div>
+    <div class="tab" data-s="1">🩺 故障诊断</div>
+    <div class="tab" data-s="2">📊 数据分析</div>
+  </div>
+
+  <div class="chat-card reveal" id="chatCard">
+    <div class="chat-head">
+      <div class="avatar">◈</div>
+      <div>
+        <div class="name" id="agentName">售前能源助手</div>
+        <div class="sub" id="agentSub">已绑定：能源知识库 · gpt-4o · 思考模式</div>
+      </div>
+      <div style="margin-left:auto" class="chip">● 流式中</div>
+    </div>
+    <div class="chat-body" id="chatBody"></div>
+    <div style="padding:0 24px 22px">
+      <div class="hint-input"><span id="hintText">帮我为 200 节点机房推荐一套能源管理硬件方案…</span><button class="send">↑</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== AGENT CAPABILITIES ===================== -->
+<section id="agent" class="wrap">
+  <div class="shead reveal">
+    <div class="stag">AGENT CAPABILITIES</div>
+    <h2>Agent 能力：会思考、会用工具、会等人</h2>
+    <p>每一个智能体都具备完整的推理—行动—反馈闭环，并支持人工介入与多轮工具编排。</p>
+  </div>
+  <div class="grid g3 reveal">
+    <div class="card"><div class="ico">🔁</div><h3>Pipeline 推理循环</h3><p>系统提示词 + 上下文 + 工具声明驱动 LLM 决策，最大迭代次数（默认 10）内自主调用工具、整合结果、形成最终回答。</p></div>
+    <div class="card"><div class="ico">🧰</div><h3>多类型工具调用</h3><p>内置工具 / MCP 工具 / HTTP API 工具统一注册。TOOL_CALL_START → ARGS_DELTA → TOOL_RESULT 全过程前端可见，超时可控。</p></div>
+    <div class="card"><div class="ico">🧠</div><h3>长短记忆协同</h3><p>短期记忆承载会话上下文，长期记忆沉淀用户偏好与事实；AGENT_CONTROL 模式让 Agent 自主决定记忆写入。</p></div>
+    <div class="card"><div class="ico">🙋</div><h3>Human-in-the-Loop</h3><p>FORM_REQUEST / CONFIRM_REQUEST / SELECTION_REQUEST 暂停 Agent 执行，等待用户填写表单或确认操作后恢复，挂起/恢复机制完备。</p></div>
+    <div class="card"><div class="ico">🔎</div><h3>RAG 知识增强</h3><p>绑定知识库后自动检索召回，KNOWLEDGE_CHUNKS 事件展示引用块与相关度分数，回答可溯源。</p></div>
+    <div class="card"><div class="ico">📈</div><h3>运行可追溯</h3><p>每次 run 落库 Agent 运行记录与 Trace Span，运行/空闲/错误状态实时徽章，支持消息重放。</p></div>
+  </div>
+</section>
+
+<!-- ===================== EXTENSION ===================== -->
+<section id="extend" class="wrap">
+  <div class="shead reveal">
+    <div class="stag">EXTENSIBILITY</div>
+    <h2>扩展能力：协议即边界，可插拔生长</h2>
+    <p>平台以"开放协议 + 插件化工具 + 自定义 UI"为扩展哲学，无需改动核心即可接入新能力。</p>
+  </div>
+  <div class="grid g2 reveal">
+    <div class="card"><div class="ico">🔌</div><h3>MCP 工具生态</h3><p>原生支持 MCP（Model Context Protocol）工具接入，一行配置把外部能力（数据库、API、文件系统）变成 Agent 可调用的 Skill。</p></div>
+    <div class="card"><div class="ico">🎨</div><h3>A2UI 自定义渲染</h3><p>通过 CUSTOM_UI_EVENT 携带任意业务数据，前端组件库按 eventName 动态路由 —— 折线图、对比矩阵、地图热力、动态表单皆可流式渲染。</p></div>
+    <div class="card"><div class="ico">🧱</div><h3>内置工具与代码工具</h3><p>支持 builtin / mcp / http / code 四类工具；开发者可编写自定义工具并注册到 Skills 服务，按需绑定给任意智能体。</p></div>
+    <div class="card"><div class="ico">🗄️</div><h3>知识库与模型可替换</h3><p>内置向量库（Milvus/Chroma/SQLite 可切换）与 Dify 外部知识库并行支持；模型供应商即插即用，开发环境可本地 Ollama</p></div>
+    <div class="card"><div class="ico">🧩</div><h3>售前场景垂直扩展</h3><p>P8 售前服务示范了如何在通用平台之上构建垂直能力：模板库、硬件参数库、选型推荐、静态资源管理，可复制到任意行业。</p></div>
+    <div class="card"><div class="ico">🚀</div><h3>广场与复用</h3><p>智能体发布到广场，支持版本管理、收藏、下载计数；配置可导出导入，让优秀 Agent 在团队间流通复用。</p></div>
+  </div>
+</section>
+
+<!-- ===================== DEV ===================== -->
+<section id="dev" class="wrap">
+  <div class="shead reveal">
+    <div class="stag">DEVELOPER</div>
+    <h2>开发能力：配置驱动，OpenSpec 编排</h2>
+    <p>从 config.yaml 协议定义到 9 个 OpenSpec 提案，平台提供清晰的开发范式与可复用组件库。</p>
+  </div>
+
+  <div class="grid g2 reveal">
+    <div class="card"><div class="ico">📐</div><h3>config.yaml 单一事实源</h3><p>AGUI 协议、前端组件分类、数据库表、API 契约、提案划分全部在 config.yaml 中声明，AI/开发者据此生成前后端代码，协议即文档。</p></div>
+    <div class="card"><div class="ico">🗺️</div><h3>9 提案分阶段推进</h3><p>P0 骨架 → P1 权限 → P2 智能体 → P3 对话（MVP 链路）→ P4~P7 能力增强 → P8 业务定制，依赖关系明确，逐 Sprint 交付。</p></div>
+  </div>
+
+  <div class="grid g2 reveal" style="margin-top:24px;align-items:stretch">
+    <div class="code">
+      <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span class="file">AguiSseHandler.java — 事件映射核心</span></div>
+<pre><span class="c">// 将 AgentScope 事件映射为 AGUI 标准事件</span>
+<span class="k">pipeline</span>.onThinkingDelta(d -&gt;
+    emit(emitter, <span class="t">AguiEventType</span>.THINKING_DELTA, <span class="t">Map</span>.of(<span class="s">"delta"</span>, d)));
+<span class="k">pipeline</span>.onTextDelta(d -&gt;
+    emit(emitter, <span class="t">AguiEventType</span>.TEXT_DELTA, <span class="t">Map</span>.of(<span class="s">"delta"</span>, d)));
+<span class="k">pipeline</span>.onToolCallStart(tc -&gt;
+    emit(emitter, <span class="t">AguiEventType</span>.TOOL_CALL_START,
+        <span class="t">Map</span>.of(<span class="s">"toolCallId"</span>, tc.getId(),
+              <span class="s">"toolName"</span>, tc.getName())));
+<span class="t">RunResult</span> result = pipeline.run(userMsg);
+emit(emitter, <span class="t">AguiEventType</span>.RUN_FINISHED,
+    <span class="t">Map</span>.of(<span class="s">"totalTokens"</span>, result.getTokens()));</pre>
+    </div>
+    <div class="code">
+      <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span class="file">AgentScope 集成 — 创建 Agent</span></div>
+<pre><span class="c">// 初始化运行时</span>
+<span class="t">AgentScope</span>.init(<span class="t">AgentScopeConfig</span>.builder()
+    .modelConfigs(modelConfigs).build());
+
+<span class="c">// 创建 Agent 实例</span>
+<span class="t">DialogAgent</span> agent = <span class="k">new</span> <span class="t">DialogAgent</span>(
+    <span class="s">"my-agent"</span>, systemPrompt, modelConfig);
+
+<span class="c">// 注册工具 → 即变成可调用 Skill</span>
+agent.addTool(<span class="k">new</span> <span class="t">HttpTool</span>(toolConfig));
+agent.addTool(<span class="k">new</span> <span class="t">McpTool</span>(mcpConfig));</pre>
+    </div>
+  </div>
+
+  <div style="height:28px"></div>
+  <div class="card reveal">
+    <div class="ico">🧪</div>
+    <h3>自建 AgentUI 可视化组件库（@agent-platform/ui）</h3>
+    <p>Vue3 + TypeScript + Tailwind + ECharts + D3 + Shiki，五大分类 35+ 组件，独立设计，可作为 npm 包发布复用：</p>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:18px" class="mod-grid">
+      <div class="mod" style="text-align:center"><h4>A 对话渲染</h4><p>MessageBubble / StreamingText / ThinkingBubble</p></div>
+      <div class="mod" style="text-align:center"><h4>B 调用过程</h4><p>ToolCallCard / PipelineTimeline / StepBar</p></div>
+      <div class="mod" style="text-align:center"><h4>C 数据可视化</h4><p>ChartRenderer / DataTable / MapView</p></div>
+      <div class="mod" style="text-align:center"><h4>D 人机交互</h4><p>ConfirmCard / FormBlock / SelectionPanel</p></div>
+      <div class="mod" style="text-align:center"><h4>E 监控仪表</h4><p>TraceViewer / TokenUsageBar / LiveDashboard</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ROADMAP ===================== -->
+<section class="wrap">
+  <div class="shead reveal">
+    <div class="stag">ROADMAP</div>
+    <h2>三阶段演进路线</h2>
+    <p>按依赖顺序推进，每个阶段交付可运行价值。</p>
+  </div>
+  <div class="tl reveal">
+    <div class="phase">
+      <div class="ph-num">PHASE 1 · 3 SPRINTS</div>
+      <h3>📐 MVP 核心链路</h3>
+      <ul>
+        <li><b>P0</b> 工程骨架与基础设施</li>
+        <li><b>P1</b> 用户认证与权限</li>
+        <li><b>P2</b> 智能体管理</li>
+        <li><b>P3</b> 对话运行时引擎</li>
+      </ul>
+      <p style="color:var(--muted);font-size:13px;margin-top:12px">跑通"创建智能体 → 对话"完整链路。</p>
+    </div>
+    <div class="phase">
+      <div class="ph-num">PHASE 2 · 3 SPRINTS</div>
+      <h3>⚡ 能力增强</h3>
+      <ul>
+        <li><b>P4</b> 记忆管理 + Mem0</li>
+        <li><b>P5</b> 知识库与模型配置</li>
+        <li><b>P6</b> Skills / MCP / A2UI</li>
+        <li><b>P7</b> 监控观测</li>
+      </ul>
+      <p style="color:var(--muted);font-size:13px;margin-top:12px">记忆、知识、工具、监控全方位补齐。</p>
+    </div>
+    <div class="phase">
+      <div class="ph-num">PHASE 3 · 2 SPRINTS</div>
+      <h3>🏭 业务定制</h3>
+      <ul>
+        <li><b>P8</b> 售前智能体专项</li>
+        <li>能源行业知识库导入</li>
+        <li>硬件选型推荐引擎</li>
+        <li>售前专属界面</li>
+      </ul>
+      <p style="color:var(--muted);font-size:13px;margin-top:12px">示范垂直行业落地范式。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== BIG CTA ===================== -->
+<section class="big-cta wrap">
+  <div class="reveal">
+    <h2>准备好构建你的第一个智能体了吗？</h2>
+    <p class="lead" style="margin:16px auto 32px">配置驱动 · 流式对话 · 全链路可观测 · 协议可扩展</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#demo">立即创建智能体 →</a>
+      <a class="btn btn-ghost" href="config.yaml">查看 config.yaml</a>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ===================== FOOTER ===================== -->
+<footer>
+  <div class="wrap">
+    <a class="brand" href="#"><span class="logo">◈</span> Pilot AI</a>
+    <div class="links">
+      <a href="#features">功能</a>
+      <a href="#demo">示例</a>
+      <a href="#dev">开发</a>
+      <a href="PLANNING.md">规划文档</a>
+      <a href="config.yaml">协议配置</a>
+    </div>
+    <div class="copy">© 2026 Pilot AI · 基于 AgentScope 2.0 Java · v1.2.0</div>
+  </div>
+</footer>
+
+<script>
+  // ---------- mobile nav toggle ----------
+  const navToggle = document.getElementById('navToggle');
+  const navUl = document.querySelector('nav ul');
+  navToggle.addEventListener('click', () => navUl.classList.toggle('open'));
+  navUl.querySelectorAll('a').forEach(a => a.addEventListener('click', () => navUl.classList.remove('open')));
+
+  // ---------- reveal on scroll ----------
+  const io = new IntersectionObserver((es) => {
+    es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // ---------- conversation scenarios ----------
+  const scenarios = [
+    {
+      name: '售前能源助手', sub: '已绑定：能源知识库 · gpt-4o · 思考模式',
+      hint: '帮我为 200 节点机房推荐一套能源管理硬件方案…',
+      turns: [
+        { role: 'user', text: '为 200 节点机房推荐一套能源管理硬件方案，预算控制在 80 万以内。' },
+        { thinking: '用户需要硬件选型方案，需先检索能源知识库中的硬件参数，结合 200 节点规模做容量估算，再用选型推荐工具生成方案，最后渲染对比矩阵。' },
+        { tool: 'search_knowledge_base · query="能源管理 硬件 选型"', ok: true, ms: 245 },
+        { tool: 'presales/selection/recommend · nodes=200, budget=800000', ok: true, ms: 1280 },
+        { role: 'assistant', text: '已根据 200 节点规模与 80 万预算生成 3 套候选方案，下方为横向对比，推荐方案已高亮：', chips: ['COMPARE_TABLE','知识库引用 ×3','耗时 1.5s'] },
+        { table: [['方案','采集网关','核心交换','UPS','总价','推荐'],
+                  ['经济型','PAC-2200 ×2','S5700 ×1','30kVA','¥58万',''],
+                  ['均衡型','PAC-3300 ×2','S6720 ×2','40kVA','¥74万','★'],
+                  ['高性能','PAC-5500 ×3','CE12800 ×1','60kVA','¥91万','']], hl: 1 }
+      ]
+    },
+    {
+      name: '故障诊断助手', sub: '已绑定：运维知识库 · 工具：查询告警/执行命令',
+      hint: 'A 区 UPS 输出电压偏低，帮我排查…',
+      turns: [
+        { role: 'user', text: 'A 区 3 号 UPS 输出电压持续偏低（198V），请排查原因。' },
+        { thinking: '先调用监控工具拉取该 UPS 近 1 小时告警与遥测，再检索运维知识库匹配故障特征，给出处置建议，涉及操作需用户确认。' },
+        { tool: 'http_tool · GET /monitor/ups/A3/alarms?window=1h', ok: true, ms: 380 },
+        { tool: 'search_knowledge_base · query="UPS 输出电压偏低"', ok: true, ms: 210 },
+        { role: 'assistant', text: '诊断结论：电池组老化导致整流器限流，输出拉低。建议执行电池组容量测试并切换至旁路维护。以下操作需要您确认：', chips: ['CONFIRM_REQUEST','置信度 89%'] },
+        { tool: 'CONFIRM_REQUEST · 切换 UPS-A3 至维护旁路', ok: false, ms: 0, pending: true }
+      ]
+    },
+    {
+      name: '数据分析助手', sub: '已绑定：业务数据库(MCP) · 工具：SQL查询/图表渲染',
+      hint: '分析上月各区域能耗趋势并画图…',
+      turns: [
+        { role: 'user', text: '分析上月各区域能耗趋势，找出异常区域。' },
+        { thinking: '需用 MCP 数据库工具查询能耗表聚合各区域日均耗电量，再用 CHART_DATA 事件渲染折线图，对异常区域在文本中说明。' },
+        { tool: 'mcp_tool · db.query: SELECT region,day,avg(kwh) ...', ok: true, ms: 1650 },
+        { role: 'assistant', text: '已生成上月各区域日均能耗折线图。C 区在第 18-22 日出现明显峰值（较均值 +37%），建议核查该区制冷系统：', chips: ['CHART_DATA(line)','5 区域 · 30 天','Token 1.2k'] }
+      ]
+    }
+  ];
+
+  const body = document.getElementById('chatBody');
+  const agentName = document.getElementById('agentName');
+  const agentSub = document.getElementById('agentSub');
+  const hintText = document.getElementById('hintText');
+
+  function render(s) {
+    body.innerHTML = '';
+    s.turns.forEach((t, i) => {
+      const delay = i * 90;
+      setTimeout(() => {
+        if (t.role) {
+          const m = document.createElement('div');
+          m.className = 'msg ' + t.role;
+          m.innerHTML = `<div class="av">${t.role === 'user' ? '你' : '◈'}</div><div class="bubble">${t.text}${t.chips ? '<div class="chip-row" style="margin-top:10px">' + t.chips.map(c=>`<span class="chip">${c}</span>`).join('') + '</div>' : ''}</div>`;
+          body.appendChild(m);
+        } else if (t.thinking) {
+          const d = document.createElement('div'); d.className = 'msg assistant';
+          d.innerHTML = `<div class="av">◈</div><div class="thinking">💭 ${t.thinking}</div>`;
+          body.appendChild(d);
+        } else if (t.tool) {
+          const d = document.createElement('div'); d.className = 'msg assistant';
+          const status = t.pending ? '<span style="color:#fbbf24">⏳ 等待确认</span>' : `<span class="ok">✓ 完成 · ${t.ms}ms</span>`;
+          d.innerHTML = `<div class="av">◈</div><div class="tool-step">🔧 ${t.tool} — ${status}</div>`;
+          body.appendChild(d);
+        } else if (t.table) {
+          const m = document.createElement('div'); m.className = 'msg assistant';
+          let rows = '';
+          t.table.forEach((r, ri) => {
+            rows += `<tr class="${ri===t.hl?'hl':''}">` + r.map((c,ci) => (ri===0?`<th>${c}</th>`:`<td>${c==='★'?'<span style="color:#4ade80">★ 推荐</span>':c}</td>`)).join('') + '</tr>';
+          });
+          m.innerHTML = `<div class="av">◈</div><div class="bubble"><table class="compare-table">${rows}</table></div>`;
+          body.appendChild(m);
+        }
+        body.scrollTop = body.scrollHeight;
+      }, delay);
+    });
+  }
+
+  function setScenario(idx) {
+    const s = scenarios[idx];
+    agentName.textContent = s.name;
+    agentSub.textContent = s.sub;
+    hintText.textContent = s.hint;
+    render(s);
+  }
+
+  document.querySelectorAll('#demoTabs .tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#demoTabs .tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      setScenario(+tab.dataset.s);
+    });
+  });
+
+  setScenario(0);
+</script>
+</body>
+</html>
